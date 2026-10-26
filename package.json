@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "seed": "node server/src/seed.js",
+    "seed": "node server/seed.js",
     "build": "npm --prefix server install && npm --prefix client install"
   },
   "dependencies": {

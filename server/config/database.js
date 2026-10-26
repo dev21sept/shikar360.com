@@ -1,6 +1,7 @@
 import { Sequelize } from 'sequelize';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -32,7 +33,19 @@ if (dialect === 'mysql') {
   );
 } else {
   // SQLite - zero external dependencies, robust and instant
-  const dbPath = process.env.DB_STORAGE || path.resolve(__dirname, '../../shikhar360.sqlite');
+  const serverDbPath = path.resolve(__dirname, '../shikhar360.sqlite');
+  let dbPath = serverDbPath;
+
+  if (process.env.DB_STORAGE) {
+    if (path.isAbsolute(process.env.DB_STORAGE)) {
+      dbPath = process.env.DB_STORAGE;
+    } else {
+      const fromCwd = path.resolve(process.cwd(), process.env.DB_STORAGE);
+      const fromDir = path.resolve(__dirname, '..', process.env.DB_STORAGE);
+      dbPath = fs.existsSync(fromCwd) ? fromCwd : (fs.existsSync(fromDir) ? fromDir : serverDbPath);
+    }
+  }
+
   sequelize = new Sequelize({
     dialect: 'sqlite',
     storage: dbPath,
