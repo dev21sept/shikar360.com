@@ -193,3 +193,87 @@ export const getMe = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Error fetching profile', error: error.message });
   }
 };
+
+export const setupInitialAdmin = async (req, res) => {
+  try {
+    const totalUsers = await User.count();
+    const providedKey = req.query.key || req.body?.secretKey;
+    const isAuthorized = totalUsers === 0 || (providedKey && providedKey === process.env.JWT_SECRET);
+
+    if (!isAuthorized) {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin already initialized. Provide secretKey (JWT_SECRET) to reset/update.'
+      });
+    }
+
+    const email = req.body?.email || req.query.email || 'admin@shikhar360.in';
+    const password = req.body?.password || req.query.password || 'admin123';
+    const phone = req.body?.phone || req.query.phone || '9999900001';
+    const username = req.body?.username || req.query.username || 'shikhar360';
+    const fullName = req.body?.fullName || req.query.fullName || 'Super Administrator';
+
+    // Ensure roles exist
+    const rolesList = [
+      { name: 'super_admin', displayName: 'Super Administrator', description: 'Full access' },
+      { name: 'admin', displayName: 'Admissions Administrator', description: 'Manages admissions' },
+      { name: 'counsellor', displayName: 'Education Counsellor', description: 'Student counseling' },
+      { name: 'college_rep', displayName: 'College Representative', description: 'College rep' },
+      { name: 'faculty', displayName: 'Faculty Member', description: 'Faculty' },
+      { name: 'accounts', displayName: 'Accounts', description: 'Accounts' },
+      { name: 'student', displayName: 'Student', description: 'Student' },
+      { name: 'parent', displayName: 'Parent', description: 'Parent' },
+      { name: 'partner', displayName: 'Partner', description: 'Partner' },
+    ];
+
+    for (const r of rolesList) {
+      await Role.findOrCreate({ where: { name: r.name }, defaults: r });
+    }
+
+    const adminRole = await Role.findOne({ where: { name: 'super_admin' } });
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    let [user, created] = await User.findOrCreate({
+      where: { email },
+      defaults: {
+        fullName,
+        username,
+        email,
+        phone,
+        passwordHash,
+        status: 'active',
+        isPhoneVerified: true
+      }
+    });
+
+    if (!created) {
+      user.passwordHash = passwordHash;
+      user.status = 'active';
+      user.isPhoneVerified = true;
+      if (!user.username) user.username = username;
+      await user.save();
+    }
+
+    await UserRole.findOrCreate({
+      where: { userId: user.id, roleId: adminRole.id },
+      defaults: { userId: user.id, roleId: adminRole.id, tenantId: null }
+    });
+
+    return res.json({
+      success: true,
+      message: created ? 'Admin account created successfully!' : 'Admin credentials updated successfully!',
+      credentials: {
+        email,
+        username,
+        phone,
+        password,
+        role: 'super_admin'
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Setup failed', error: error.message });
+  }
+};
+

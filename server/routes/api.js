@@ -1,5 +1,5 @@
 import express from 'express';
-import { requestOtp, verifyOtpAndLogin, passwordLogin, getMe } from '../controllers/authController.js';
+import { requestOtp, verifyOtpAndLogin, passwordLogin, getMe, setupInitialAdmin } from '../controllers/authController.js';
 import { getColleges, getCollegeBySlug, compareColleges, createCollege, updateCollege, deleteCollege } from '../controllers/collegeController.js';
 import { getCategories, getCourses, getCourseBySlug, createCourse, updateCourse, deleteCourse } from '../controllers/courseController.js';
 import { createLead, getLeads, updateLeadStatus, addLeadActivity } from '../controllers/leadController.js';
@@ -58,6 +58,8 @@ router.get('/career/questions', getCareerQuestions);
 router.post('/auth/otp/request', requestOtp);
 router.post('/auth/otp/verify', verifyOtpAndLogin);
 router.post('/auth/login', passwordLogin);
+router.get('/auth/setup-admin', setupInitialAdmin);
+router.post('/auth/setup-admin', setupInitialAdmin);
 
 // ================= PROTECTED ROUTES =================
 router.get('/auth/me', authenticateToken, getMe);

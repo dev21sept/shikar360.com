@@ -15,8 +15,26 @@ const allowedOrigins = process.env.CLIENT_URL
   ? process.env.CLIENT_URL.split(',').map((url) => url.trim())
   : ['http://localhost:5173', 'http://127.0.0.1:5173'];
 
+// Early Request Logger for Hostinger Runtime Logs visibility
+app.use((req, res, next) => {
+  console.log(`📡 ${req.method} ${req.url} (Origin: ${req.headers.origin || 'none'})`);
+  next();
+});
+
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const isAllowed =
+      allowedOrigins.includes(origin) ||
+      origin.includes('shikhar360.com') ||
+      origin.includes('shikar360.com') ||
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1');
+    if (isAllowed) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
   credentials: true
 }));
 
